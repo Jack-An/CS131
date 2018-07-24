@@ -20,7 +20,23 @@ def conv_nested(image, kernel):
     out = np.zeros((Hi, Wi))
 
     ### YOUR CODE HERE
-    pass
+    kernel = np.flip(kernel, 0)
+    kernel = np.flip(kernel, 1)
+
+    center_X = int(Wk / 2)
+    center_Y = int(Hk / 2)
+
+    for X in range(Wi):
+        for Y in range(Hi):
+            for xk in range(Wk):
+                for yk in range(Hk):
+                    global_x = X + xk - center_X
+                    global_y = Y + yk - center_Y
+
+                    if 0 <= global_x < Wi and 0 <= global_y < Hi:
+                        out[Y, X] = out[Y, X] + image[global_y, global_x] * kernel[yk, xk]
+
+
     ### END YOUR CODE
 
     return out
@@ -47,7 +63,7 @@ def zero_pad(image, pad_height, pad_width):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    out = np.pad(image, ((pad_height,),(pad_width,)), mode = 'constant')
     ### END YOUR CODE
     return out
 
@@ -76,7 +92,17 @@ def conv_fast(image, kernel):
     out = np.zeros((Hi, Wi))
 
     ### YOUR CODE HERE
-    pass
+    kernel = np.flip(kernel, 0)
+    kernel = np.flip(kernel, 1)
+    pad_height = int(Hk/2)
+    pad_width = int(Wk/2)
+    img_pad = zero_pad(image, pad_height, pad_width)
+    for h in range(Hi):
+        for w in range(Wi):
+            # define the current slice
+            img_slice = img_pad[h:h + Hk,w:w + Wk]
+            out[h,w] = np.sum(img_slice * kernel)
+
     ### END YOUR CODE
 
     return out
@@ -95,7 +121,8 @@ def conv_faster(image, kernel):
     out = np.zeros((Hi, Wi))
 
     ### YOUR CODE HERE
-    pass
+    from scipy import signal
+    out = signal.convolve2d(image, kernel, mode='same')
     ### END YOUR CODE
 
     return out
@@ -115,7 +142,9 @@ def cross_correlation(f, g):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    g = np.flip(np.flip(g,0),1)
+    out = conv_fast(f,g)
+
     ### END YOUR CODE
 
     return out
@@ -135,7 +164,9 @@ def zero_mean_cross_correlation(f, g):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    mean = np.mean(g)
+    g -=mean
+    out = cross_correlation(f, g)
     ### END YOUR CODE
 
     return out
@@ -156,7 +187,18 @@ def normalized_cross_correlation(f, g):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    Hf,Wf = f.shape
+    Hg,Wg = g.shape
+    mean_g = np.mean(g)
+    std_g = np.std(g)
+    norm_kernel = (g - mean_g)/ std_g
+    img_pad = zero_pad(f, int(Hg/2), int(Wg/2))
+    out = np.zeros(f.shape)
+    for h in range(Hf):
+        for w in range(Wf):
+            img_slice =img_pad[h:h + Hg,w:w + Wg]
+            norm_img = (img_slice - np.mean(img_slice)) / np.std(img_slice)
+            out[h,w] = np.sum(norm_img * norm_kernel)
     ### END YOUR CODE
 
     return out
